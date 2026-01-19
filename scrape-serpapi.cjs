@@ -5,24 +5,36 @@ const { parse } = require("json2csv");
 
 // SERPAPI FETCH
 async function fetchNews(keyword, year) {
-  return new Promise((resolve) => {
-    getJson({
-      engine: "google_news",
-      q: keyword,
-      hl: "id",
-      gl: "id",
-      api_key: process.env.SERPAPI_KEY,
-      tbs: `cdr:1,cd_min:01/01/${year},cd_max:12/31/${year}`
-    }, (json) => {
-      resolve(json.news_results || []);
+  const allNews = [];
+  const maxPages = 5;
+
+  for (let page = 0; page < maxPages; page++) {
+    await new Promise((resolve) => {
+      getJson({
+        engine: "google",
+        q: `${keyword} after:${year}-01-01 before:${year}-12-31`,
+        tbm: "nws",
+        hl: "id",
+        gl: "id",
+        api_key: process.env.SERPAPI_KEY,
+        start: page * 10
+      }, (json) => {
+        const news = json.news_results || [];
+        allNews.push(...news);
+        resolve();
+      });
     });
-  });
+  }
+
+  return allNews;
 }
+
 
 // MAIN
 (async () => {
   const keywords = [
 // Isi Keywords
+    "food estate"
   ];
 
   const years = Array.from({ length: 2025 - 2017 + 1 }, (_, i) => 2017 + i);
